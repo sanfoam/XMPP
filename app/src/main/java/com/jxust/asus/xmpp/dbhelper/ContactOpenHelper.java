@@ -13,7 +13,7 @@ import android.provider.BaseColumns;
  */
 public class ContactOpenHelper extends SQLiteOpenHelper {
 
-    private static final String T_CONTACT = "t_contact";
+    public static final String T_CONTACT = "t_contact";
 
     public class ContactTable implements BaseColumns {   // 就是会默认给我添加一列：_id
         public static final String ACCOUNT = "account";         // 账号

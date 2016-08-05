@@ -20,6 +20,7 @@ import org.jivesoftware.smack.XMPPException;
 
 public class LoginActivity extends Activity {
 
+    public static final String SERVICENAME = "jxust.com";
     private TextView mEtUsername;
     private TextView mEtPassword;
     private Button mBtnLogin;

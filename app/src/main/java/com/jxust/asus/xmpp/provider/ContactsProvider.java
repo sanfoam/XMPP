@@ -123,7 +123,7 @@ public class ContactsProvider extends ContentProvider {
                 System.out.println("--------ContactsProvider----------------querySuccess---------------");
                 break;
         }
-        return null;
+        return cursor;  // 返回查询出的数量
     }
 
     /***************

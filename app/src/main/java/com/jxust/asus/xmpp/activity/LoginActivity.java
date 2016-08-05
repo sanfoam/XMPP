@@ -10,6 +10,7 @@ import android.widget.Button;
 import android.widget.TextView;
 
 import com.jxust.asus.xmpp.R;
+import com.jxust.asus.xmpp.service.IMService;
 import com.jxust.asus.xmpp.utils.ThreadUtils;
 import com.jxust.asus.xmpp.utils.ToastUtils;
 
@@ -89,6 +90,9 @@ public class LoginActivity extends Activity {
                             // 跳到主界面
                             Intent intent = new Intent(LoginActivity.this,MainActivity.class);
                             startActivity(intent);
+
+                            // 需要保存连接对象
+                            IMService.conn = conn;
 
                         } catch (XMPPException e) {
                             e.printStackTrace();

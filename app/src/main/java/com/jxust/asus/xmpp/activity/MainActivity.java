@@ -30,12 +30,14 @@ public class MainActivity extends FragmentActivity {
     LinearLayout mMainBottom;
 
     @InjectView(R.id.main_tv_title)
-    TextView mTVTitle;
+    TextView mMainTiTle;
 
     @InjectView(R.id.main_viewpager)
     ViewPager mMainViewPager;
 
     private List<Fragment> mFragments = new ArrayList<Fragment>();
+    private ToolBarUtil mToolBarUtil;
+    private String[] mToolBarTitleArr;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -43,6 +45,36 @@ public class MainActivity extends FragmentActivity {
         setContentView(R.layout.activity_main);
         ButterKnife.inject(this);
         initData();
+        initListener();
+    }
+
+    private void initListener() {
+        mMainViewPager.setOnPageChangeListener(new ViewPager.OnPageChangeListener() {
+            @Override
+            public void onPageScrolled(int position, float positionOffset, int positionOffsetPixels) {
+
+            }
+
+            @Override
+            public void onPageSelected(int position) {
+                // 修改颜色
+                mToolBarUtil.changeColor(position);
+                // 修改title
+                mMainTiTle.setText(mToolBarTitleArr[position]);
+            }
+
+            @Override
+            public void onPageScrollStateChanged(int state) {
+
+            }
+        });
+
+        mToolBarUtil.setOnToolBarClickListener(new ToolBarUtil.OnToolBarClickListener() {
+            @Override
+            public void onToolBarClick(int position) {
+                mMainViewPager.setCurrentItem(position);
+            }
+        });
     }
 
     private void initData() {
@@ -57,18 +89,18 @@ public class MainActivity extends FragmentActivity {
         mMainViewPager.setAdapter(new MyPagerAdapter(getSupportFragmentManager()));
 
         // 底部的按钮
-        ToolBarUtil toolBarUtil = new ToolBarUtil();
+        mToolBarUtil = new ToolBarUtil();
 
         // 文字的内容
-        String[] toolBarTitleArr = {"会话","联系人"};
+        mToolBarTitleArr = new String[]{"会话","联系人"};
 
         // 图标内容
         int[] iconArr = {R.drawable.selector_message,R.drawable.selector_selfinfo};
 
-        toolBarUtil.createToolBar(mMainBottom,toolBarTitleArr,iconArr);
+        mToolBarUtil.createToolBar(mMainBottom, mToolBarTitleArr,iconArr);
 
         // 设置默认选中会话
-        toolBarUtil.changeColor(0);     // 默认选中第一个控件
+        mToolBarUtil.changeColor(0);     // 默认选中第一个控件
     }
 
 

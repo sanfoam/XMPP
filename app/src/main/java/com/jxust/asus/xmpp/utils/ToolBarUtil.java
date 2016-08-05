@@ -36,6 +36,17 @@ public class ToolBarUtil {
 
             // 保存textView到集合中
             mTextViews.add(tv);
+
+            // 设置点击事件
+            final int finalI = i;
+            tv.setOnClickListener(new View.OnClickListener() {
+                @Override
+                public void onClick(View v) {
+                    // 不同模块之间传值需要通过接口回调
+                    // 3.需要传值的地方，用接口对象调用接口方法
+                    mOnToolBarClickListener.onToolBarClick(finalI);
+                }
+            });
         }
     }
 
@@ -44,9 +55,20 @@ public class ToolBarUtil {
         // 还原所有的颜色
         for(TextView tv : mTextViews){
             tv.setSelected(false);
-
         }
-        //
+
         mTextViews.get(position).setSelected(true);  // 通过设置selector属性，控制为选中效果
+    }
+
+    // 1.创建接口和接口方法
+    public interface  OnToolBarClickListener{
+        void onToolBarClick(int position);
+    }
+    // 2.定义接口变量
+    OnToolBarClickListener mOnToolBarClickListener;
+
+    // 4.暴露一个公共的方法
+    public void setOnToolBarClickListener(OnToolBarClickListener mOnToolBarClickListener) {
+        this.mOnToolBarClickListener = mOnToolBarClickListener;
     }
 }

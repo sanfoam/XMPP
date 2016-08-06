@@ -25,15 +25,12 @@ public class MainActivity extends FragmentActivity {
     // xUtils 中的viewUtils 注解方式去找控件
     // xUtils包括viewUtils,httpUtils,dbUtils,bitmapUtils
     // ButterKnife.jar只集成了xUtils中viewUtils的功能
-
-    @InjectView(R.id.main_bottom)
-    LinearLayout mMainBottom;
-
     @InjectView(R.id.main_tv_title)
-    TextView mMainTiTle;
-
+    TextView mMainTitle;
     @InjectView(R.id.main_viewpager)
     ViewPager mMainViewPager;
+    @InjectView(R.id.main_bottom)
+    LinearLayout mMainBottom;
 
     private List<Fragment> mFragments = new ArrayList<Fragment>();
     private ToolBarUtil mToolBarUtil;
@@ -51,7 +48,8 @@ public class MainActivity extends FragmentActivity {
     private void initListener() {
         mMainViewPager.setOnPageChangeListener(new ViewPager.OnPageChangeListener() {
             @Override
-            public void onPageScrolled(int position, float positionOffset, int positionOffsetPixels) {
+            public void onPageScrolled(int position, float positionOffset, int
+                    positionOffsetPixels) {
 
             }
 
@@ -60,7 +58,7 @@ public class MainActivity extends FragmentActivity {
                 // 修改颜色
                 mToolBarUtil.changeColor(position);
                 // 修改title
-                mMainTiTle.setText(mToolBarTitleArr[position]);
+                mMainTitle.setText(mToolBarTitleArr[position]);
             }
 
             @Override
@@ -92,17 +90,16 @@ public class MainActivity extends FragmentActivity {
         mToolBarUtil = new ToolBarUtil();
 
         // 文字的内容
-        mToolBarTitleArr = new String[]{"会话","联系人"};
+        mToolBarTitleArr = new String[]{"会话", "联系人"};
 
         // 图标内容
-        int[] iconArr = {R.drawable.selector_message,R.drawable.selector_selfinfo};
+        int[] iconArr = {R.drawable.selector_message, R.drawable.selector_selfinfo};
 
-        mToolBarUtil.createToolBar(mMainBottom, mToolBarTitleArr,iconArr);
+        mToolBarUtil.createToolBar(mMainBottom, mToolBarTitleArr, iconArr);
 
         // 设置默认选中会话
         mToolBarUtil.changeColor(0);     // 默认选中第一个控件
     }
-
 
 
     class MyPagerAdapter extends FragmentPagerAdapter {

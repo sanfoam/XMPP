@@ -2,28 +2,28 @@ package com.jxust.asus.xmpp.activity;
 
 import android.app.Activity;
 import android.os.Bundle;
-import android.widget.Button;
+import android.view.View;
 import android.widget.EditText;
 import android.widget.ListView;
 import android.widget.TextView;
 
 import com.jxust.asus.xmpp.R;
 
-import butterknife.BindView;
 import butterknife.ButterKnife;
+import butterknife.InjectView;
 
 public class ChatActivity extends Activity {
 
     public static final String CLICKACCOUNT = "clickAccount";
     public static final String CLICKNICKNAME = "clickNickname";
-    @BindView(R.id.title)
-    TextView title;
-    @BindView(R.id.listView)
-    ListView listView;
-    @BindView(R.id.et_body)
-    EditText etBody;
-    @BindView(R.id.btn_send)
-    Button btnSend;
+    @InjectView(R.id.title)
+    TextView mTitle;
+    @InjectView(R.id.listView)
+    ListView mListView;
+    @InjectView(R.id.et_body)
+    EditText mEtBody;
+
+
     private String mClickAccount;
     private String mClickNickname;
 
@@ -31,7 +31,7 @@ public class ChatActivity extends Activity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_chat);
-        ButterKnife.bind(this);     // 将inject变成了bind,这是ButterKnife8.0和以前版本不一样的地方
+        ButterKnife.inject(this);
         init();
         initView();
         initData();
@@ -45,7 +45,7 @@ public class ChatActivity extends Activity {
 
     private void initView() {
         // 设置title
-
+        mTitle.setText("与" + mClickNickname + "聊天中");
 
     }
 
@@ -57,5 +57,9 @@ public class ChatActivity extends Activity {
 
     }
 
+    public void send(View v){
+        String body = mEtBody.getText().toString();
+
+    }
 
 }

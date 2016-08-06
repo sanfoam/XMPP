@@ -70,6 +70,9 @@ public class ContactsProvider extends ContentProvider {
                     // content://com.jxust.asus.xmpp.provider.ContactsProvider/contact会变成
                     // content://com.jxust.asus.xmpp.provider.ContactsProvider/contact/id
                     uri = ContentUris.withAppendedId(uri, id);
+                    // 通知ContentObserver数据改变了
+                    // 第二参数为null表示所有的observer都可以收到，如果不为null则表示只有指定的observer才可以收到
+                    getContext().getContentResolver().notifyChange(ContactsProvider.URI_CONTACT,null);
                 }
                 break;
         }
@@ -87,6 +90,7 @@ public class ContactsProvider extends ContentProvider {
                 deleteCount = db.delete(ContactOpenHelper.T_CONTACT, selection, selectionArgs);
                 if(deleteCount > 0){
                     System.out.println("--------ContactsProvider----------------deleteSuccess---------------");
+                    getContext().getContentResolver().notifyChange(ContactsProvider.URI_CONTACT,null);
                 }
                 break;
         }
@@ -104,6 +108,7 @@ public class ContactsProvider extends ContentProvider {
                 updateCount = db.update(ContactOpenHelper.T_CONTACT, values, selection, selectionArgs);
                 if(updateCount > 0){
                     System.out.println("--------ContactsProvider----------------updateSuccess---------------");
+                    getContext().getContentResolver().notifyChange(ContactsProvider.URI_CONTACT,null);
                 }
                 break;
         }

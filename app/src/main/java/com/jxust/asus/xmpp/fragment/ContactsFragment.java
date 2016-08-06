@@ -71,9 +71,23 @@ public class ContactsFragment extends Fragment {
 
     private void initListener() {
         mListView.setOnItemClickListener(new AdapterView.OnItemClickListener() {
+
+            private Cursor cursor;
+
             @Override
             public void onItemClick(AdapterView<?> parent, View view, int position, long id) {
+                cursor = mAdapter.getCursor();
+                cursor.moveToPosition(position);
+
+                // 拿到JID(账号)-->发送消息的时候需要
+                String account = cursor.getString(cursor.getColumnIndex(ContactOpenHelper.ContactTable.ACCOUNT));
+                // 拿到nickname-->显示效果
+                String nickname = cursor.getString(cursor.getColumnIndex(ContactOpenHelper.ContactTable.NICKNAME));
+
                 Intent intent = new Intent(getActivity(),ChatActivity.class);
+
+                intent.putExtra(ChatActivity.CLICKACCOUNT,account);
+                intent.putExtra(ChatActivity.CLICKNICKNAME,nickname);
                 startActivity(intent);
             }
         });

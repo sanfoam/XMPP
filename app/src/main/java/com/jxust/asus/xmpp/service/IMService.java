@@ -27,6 +27,8 @@ import java.util.Collection;
  */
 public class IMService extends Service {
     public static XMPPConnection conn;  // 一旦被static修改就不再被GC所回收了
+    public static String mCurAccount;   // 当前登录用户的JID(账户)
+
     private Roster mRoster;
     private MyRosterListener mRosterListener;
 

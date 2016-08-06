@@ -20,7 +20,7 @@ import com.jxust.asus.xmpp.dbhelper.ContactOpenHelper;
 public class ContactsProvider extends ContentProvider {
 
     // 主机地址的常量-->当前类的完整路径
-    public static final String AUTHORITIES = ContactsProvider.class.getCanonicalName(); //
+    public static final String AUTHORITIES = ContactsProvider.class.getCanonicalName();
     // 得到一个类的完整路径
 
     // 地址匹配对象
@@ -65,9 +65,7 @@ public class ContactsProvider extends ContentProvider {
                 // 新插入的id
                 long id = db.insert(ContactOpenHelper.T_CONTACT, "", values);
                 if (id != -1) {   // 插入成功
-                    System.out.println
-                            ("--------ContactsProvider----------------insertSuccess" +
-                                    "---------------");
+                    System.out.println("----ContactsProvider--------insertSuccess------");
                     // 拼接最新的uri
                     // 如果成功
                     // content://com.jxust.asus.xmpp.provider.ContactsProvider/contact会变成
@@ -93,9 +91,7 @@ public class ContactsProvider extends ContentProvider {
                 // 返回的值deleteCount表示的就是影响的行数，selection表示的就是条件，selectionArgs表示的就是条件的参数
                 deleteCount = db.delete(ContactOpenHelper.T_CONTACT, selection, selectionArgs);
                 if (deleteCount > 0) {
-                    System.out.println
-                            ("--------ContactsProvider----------------deleteSuccess" +
-                                    "---------------");
+                    System.out.println("----ContactsProvider--------deleteSuccess------");
                     getContext().getContentResolver().notifyChange(ContactsProvider.URI_CONTACT,
                             null);
                 }
@@ -115,9 +111,7 @@ public class ContactsProvider extends ContentProvider {
                 updateCount = db.update(ContactOpenHelper.T_CONTACT, values, selection,
                         selectionArgs);
                 if (updateCount > 0) {
-                    System.out.println
-                            ("--------ContactsProvider----------------updateSuccess" +
-                                    "---------------");
+                    System.out.println("----ContactsProvider--------updateSuccess------");
                     getContext().getContentResolver().notifyChange(ContactsProvider.URI_CONTACT,
                             null);
                 }
@@ -138,8 +132,7 @@ public class ContactsProvider extends ContentProvider {
                 // projection表示的就是要查询的食物，sortOrder表示的就是排序
                 cursor = db.query(ContactOpenHelper.T_CONTACT, projection, selection,
                         selectionArgs, null, null, sortOrder);
-                System.out.println("--------ContactsProvider----------------querySuccess" +
-                        "---------------");
+                System.out.println("----ContactsProvider--------querySuccess------");
                 break;
         }
         return cursor;  // 返回查询出的数量

@@ -20,7 +20,7 @@ import org.jivesoftware.smack.XMPPException;
 
 public class LoginActivity extends Activity {
 
-    public static final String SERVICENAME = "jxust.com";
+    public static final String SERVICENAME = "127.0.0.1";       // 这个就是账户的唯一标识，一般就是服务器的后缀
     private TextView mEtUsername;
     private TextView mEtPassword;
     private Button mBtnLogin;
@@ -68,10 +68,12 @@ public class LoginActivity extends Activity {
                     public void run() {
                         try {
                             // 1.创建XMPP连接配置对象
-                            ConnectionConfiguration config = new ConnectionConfiguration(HOST, PORT);
+                            ConnectionConfiguration config = new ConnectionConfiguration(HOST,
+                                    PORT);
 
                             // 额外的配置，方便我们开发，上线的时候再改回来
-                            config.setSecurityMode(ConnectionConfiguration.SecurityMode.disabled);  // 明文传输数据，方便开发调试
+                            config.setSecurityMode(ConnectionConfiguration.SecurityMode.disabled)
+                            ;  // 明文传输数据，方便开发调试
                             config.setDebuggerEnabled(true);        // 开启调试模式，方便我们查看具体发送的内容
 
                             // 2.开始创建连接对象
@@ -85,24 +87,29 @@ public class LoginActivity extends Activity {
                             conn.login(userName, password);
 
                             // 已经登录成功
-                            ToastUtils.showToastSafe(getApplicationContext(),"登录成功");
+                            ToastUtils.showToastSafe(getApplicationContext(), "登录成功");
 
                             finish();       // 关闭自身Activity
                             // 跳到主界面
-                            Intent intent = new Intent(LoginActivity.this,MainActivity.class);
+                            Intent intent = new Intent(LoginActivity.this, MainActivity.class);
                             startActivity(intent);
 
                             // 需要保存连接对象
                             IMService.conn = conn;
 
+                            // 保存当前登录的账户
+                            // admin --> admin@127.0.0.1
+                            String account = userName + "@" + LoginActivity.SERVICENAME;
+                            IMService.mCurAccount = account;
+
                             // 启动IMService
-                            Intent service = new Intent(LoginActivity.this,IMService.class);
+                            Intent service = new Intent(LoginActivity.this, IMService.class);
                             startService(service);
 
                         } catch (XMPPException e) {
                             e.printStackTrace();
                             // 登录失败
-                           ToastUtils.showToastSafe(getApplicationContext(),"登录失败");
+                            ToastUtils.showToastSafe(getApplicationContext(), "登录失败");
                         }
                     }
                 });

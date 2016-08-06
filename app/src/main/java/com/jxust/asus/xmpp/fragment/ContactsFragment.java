@@ -2,6 +2,7 @@ package com.jxust.asus.xmpp.fragment;
 
 
 import android.content.Context;
+import android.content.Intent;
 import android.database.ContentObserver;
 import android.database.Cursor;
 import android.net.Uri;
@@ -13,11 +14,13 @@ import android.support.v4.widget.CursorAdapter;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
+import android.widget.AdapterView;
 import android.widget.ImageView;
 import android.widget.ListView;
 import android.widget.TextView;
 
 import com.jxust.asus.xmpp.R;
+import com.jxust.asus.xmpp.activity.ChatActivity;
 import com.jxust.asus.xmpp.dbhelper.ContactOpenHelper;
 import com.jxust.asus.xmpp.provider.ContactsProvider;
 import com.jxust.asus.xmpp.utils.ThreadUtils;
@@ -67,6 +70,13 @@ public class ContactsFragment extends Fragment {
     }
 
     private void initListener() {
+        mListView.setOnItemClickListener(new AdapterView.OnItemClickListener() {
+            @Override
+            public void onItemClick(AdapterView<?> parent, View view, int position, long id) {
+                Intent intent = new Intent(getActivity(),ChatActivity.class);
+                startActivity(intent);
+            }
+        });
     }
 
     private void initData() {

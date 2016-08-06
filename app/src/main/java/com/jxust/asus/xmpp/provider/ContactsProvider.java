@@ -20,7 +20,8 @@ import com.jxust.asus.xmpp.dbhelper.ContactOpenHelper;
 public class ContactsProvider extends ContentProvider {
 
     // 主机地址的常量-->当前类的完整路径
-    public static final String AUTHORITIES = ContactsProvider.class.getCanonicalName(); // 得到一个类的完整路径
+    public static final String AUTHORITIES = ContactsProvider.class.getCanonicalName(); //
+    // 得到一个类的完整路径
 
     // 地址匹配对象
     static UriMatcher mUriMatcher;
@@ -63,8 +64,10 @@ public class ContactsProvider extends ContentProvider {
                 SQLiteDatabase db = mHelper.getWritableDatabase();
                 // 新插入的id
                 long id = db.insert(ContactOpenHelper.T_CONTACT, "", values);
-                if(id != -1){   // 插入成功
-                    System.out.println("--------ContactsProvider----------------insertSuccess---------------");
+                if (id != -1) {   // 插入成功
+                    System.out.println
+                            ("--------ContactsProvider----------------insertSuccess" +
+                                    "---------------");
                     // 拼接最新的uri
                     // 如果成功
                     // content://com.jxust.asus.xmpp.provider.ContactsProvider/contact会变成
@@ -72,7 +75,8 @@ public class ContactsProvider extends ContentProvider {
                     uri = ContentUris.withAppendedId(uri, id);
                     // 通知ContentObserver数据改变了
                     // 第二参数为null表示所有的observer都可以收到，如果不为null则表示只有指定的observer才可以收到
-                    getContext().getContentResolver().notifyChange(ContactsProvider.URI_CONTACT,null);
+                    getContext().getContentResolver().notifyChange(ContactsProvider.URI_CONTACT,
+                            null);
                 }
                 break;
         }
@@ -88,9 +92,12 @@ public class ContactsProvider extends ContentProvider {
                 SQLiteDatabase db = mHelper.getWritableDatabase();
                 // 返回的值deleteCount表示的就是影响的行数，selection表示的就是条件，selectionArgs表示的就是条件的参数
                 deleteCount = db.delete(ContactOpenHelper.T_CONTACT, selection, selectionArgs);
-                if(deleteCount > 0){
-                    System.out.println("--------ContactsProvider----------------deleteSuccess---------------");
-                    getContext().getContentResolver().notifyChange(ContactsProvider.URI_CONTACT,null);
+                if (deleteCount > 0) {
+                    System.out.println
+                            ("--------ContactsProvider----------------deleteSuccess" +
+                                    "---------------");
+                    getContext().getContentResolver().notifyChange(ContactsProvider.URI_CONTACT,
+                            null);
                 }
                 break;
         }
@@ -105,10 +112,14 @@ public class ContactsProvider extends ContentProvider {
             case CONTACT:
                 SQLiteDatabase db = mHelper.getWritableDatabase();
                 // updateCount表示的就是更新条数,selection 表示的是条件 selectionArgs表示的就是条件的参数 values表示的就是要更新的成分
-                updateCount = db.update(ContactOpenHelper.T_CONTACT, values, selection, selectionArgs);
-                if(updateCount > 0){
-                    System.out.println("--------ContactsProvider----------------updateSuccess---------------");
-                    getContext().getContentResolver().notifyChange(ContactsProvider.URI_CONTACT,null);
+                updateCount = db.update(ContactOpenHelper.T_CONTACT, values, selection,
+                        selectionArgs);
+                if (updateCount > 0) {
+                    System.out.println
+                            ("--------ContactsProvider----------------updateSuccess" +
+                                    "---------------");
+                    getContext().getContentResolver().notifyChange(ContactsProvider.URI_CONTACT,
+                            null);
                 }
                 break;
         }
@@ -117,15 +128,18 @@ public class ContactsProvider extends ContentProvider {
 
     @Nullable
     @Override
-    public Cursor query(Uri uri, String[] projection, String selection, String[] selectionArgs, String sortOrder) {
+    public Cursor query(Uri uri, String[] projection, String selection, String[] selectionArgs,
+                        String sortOrder) {
         int code = mUriMatcher.match(uri);
         Cursor cursor = null;
         switch (code) {
             case CONTACT:
                 SQLiteDatabase db = mHelper.getWritableDatabase();
                 // projection表示的就是要查询的食物，sortOrder表示的就是排序
-                cursor = db.query(ContactOpenHelper.T_CONTACT, projection, selection, selectionArgs,null,null,sortOrder);
-                System.out.println("--------ContactsProvider----------------querySuccess---------------");
+                cursor = db.query(ContactOpenHelper.T_CONTACT, projection, selection,
+                        selectionArgs, null, null, sortOrder);
+                System.out.println("--------ContactsProvider----------------querySuccess" +
+                        "---------------");
                 break;
         }
         return cursor;  // 返回查询出的数量

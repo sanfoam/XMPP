@@ -271,12 +271,18 @@ public class IMService extends Service {
      */
     private void saveMessage(String sessionAccount, Message msg) {
         ContentValues values = new ContentValues();
+        sessionAccount = filterAccount(sessionAccount);
+        // 将JID全部格式化
+        String from = msg.getFrom();
+        from = filterAccount(from);
+        String to = msg.getTo();
+        to = filterAccount(to);
 
         // session_account 表示的是 会话id --> 最近你和哪些人聊天
         // 我(from) --> other(to)    session_account===>other
         // other(from) -->我(to)     session_account===>other
-        values.put(SmsOpenHelper.SMSTable.FROM_ACCOUNT, msg.getFrom());
-        values.put(SmsOpenHelper.SMSTable.TO_ACCOUNT, msg.getTo());
+        values.put(SmsOpenHelper.SMSTable.FROM_ACCOUNT, from);
+        values.put(SmsOpenHelper.SMSTable.TO_ACCOUNT, to);
         values.put(SmsOpenHelper.SMSTable.BODY, msg.getBody());
         values.put(SmsOpenHelper.SMSTable.STATUS, "offline");
         values.put(SmsOpenHelper.SMSTable.TYPE, msg.getType().name());
@@ -312,5 +318,14 @@ public class IMService extends Service {
         }
     }
 
+    /**
+     * 这个是用于去掉后缀的
+     * admin@127.0.0.1/Spark   ——>  admin@127.0.0.1
+     * @param accout
+     * @return
+     */
+    private String filterAccount(String accout) {
+        return accout.substring(0, accout.indexOf("@")) + "@" + LoginActivity.SERVICENAME;
+    }
 
 }

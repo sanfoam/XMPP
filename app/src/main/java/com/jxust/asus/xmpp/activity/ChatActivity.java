@@ -63,13 +63,13 @@ public class ChatActivity extends Activity {
         registerContentObserver();  // 注册监听
 
         // 通过混合模式来绑定服务(service)
-        Intent service = new Intent(ChatActivity.this,IMService.class);
+        Intent service = new Intent(ChatActivity.this, IMService.class);
         /**
          * 参数1表示的是要绑定的服务
          * 参数2表示的是连接对象，implements ServiceConnection
          * 参数3 BIND_AUTO_CREATE表示的意思如果服务还没创建的话就创建,如果服务还没绑定就绑定
          */
-        bindService(service, mMyServiceConnection,BIND_AUTO_CREATE);
+        bindService(service, mMyServiceConnection, BIND_AUTO_CREATE);
 
         mClickAccount = getIntent().getStringExtra(CLICKACCOUNT);
         mClickNickname = getIntent().getStringExtra(CLICKNICKNAME);
@@ -101,8 +101,17 @@ public class ChatActivity extends Activity {
 
             @Override
             public void run() {
-                final Cursor cursor = getContentResolver().query(SmsProvider.URI_SMS, null, null,
-                        null, "time asc");  // asc 升序，desc 降序
+                // select语句的查询语句
+                String selection = "(from_account=? and to_account=?)or(from_account=? " +
+                        "and to_account=?)";
+                // 查询语句中相匹配的参数的值
+                // IMService.mCurAccount表示的就是用户自身，mClickAccount表示的就是要发送的对象
+                String[] selectionArgs = new String[]{mClickAccount, IMService.mCurAccount,
+                        IMService.mCurAccount, mClickAccount};
+
+                final Cursor cursor = getContentResolver().query(SmsProvider.URI_SMS, null,
+                        selection, selectionArgs, "time asc");  // asc 升序，desc 降序，根据时间升序排序
+
                 // 如果没有数据，直接返回
                 if (cursor.getCount() < 1) {
                     return;
@@ -266,8 +275,8 @@ public class ChatActivity extends Activity {
                     msg.setType(Message.Type.chat);     // 消息的类型，类型就是聊天
 //          msg.setProperty("key", "value");     // 额外的属性-->其实就是额外的信息,这里我们不使用
 
-            // 调用服务里面的sendMessage这个方法来发送消息
-                mImService.sendMessage(msg);
+                    // 调用服务里面的sendMessage这个方法来发送消息
+                    mImService.sendMessage(msg);
 
 //          4.清空输入框，回到主线程中进行
                     ThreadUtils.runInUIThread(new Runnable() {
@@ -286,7 +295,7 @@ public class ChatActivity extends Activity {
     protected void onDestroy() {
         super.onDestroy();
         unRegisterContentObserver();    // 反注册监听
-        if(mMyServiceConnection != null) {
+        if (mMyServiceConnection != null) {
             unbindService(mMyServiceConnection);    // 解绑服务,直接传入连接对象即可
         }
     }

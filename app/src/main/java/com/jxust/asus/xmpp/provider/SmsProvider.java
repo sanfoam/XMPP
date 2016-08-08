@@ -62,6 +62,9 @@ public class SmsProvider extends ContentProvider {
                 if (id != -1) { // 说明插入成功
                     System.out.println("=================SmsProvider insertSuccess===============");
                     uri = ContentUris.withAppendedId(uri, id);
+                    // 发送数据改变的信号,第二个参数表示是否需要指定一个特殊的observer
+                    // 如果是null表示不指定observer，所有的都要接收
+                    getContext().getContentResolver().notifyChange(SmsProvider.URI_SMS,null);
                 }
                 break;
         }
@@ -93,6 +96,7 @@ public class SmsProvider extends ContentProvider {
                         selection, selectionArgs);
                 if (updateCount > 0) {//说明更新成功
                     System.out.println("=================SmsProvider updateSuccess===============");
+                    getContext().getContentResolver().notifyChange(SmsProvider.URI_SMS,null);
                 }
                 break;
         }
@@ -109,6 +113,7 @@ public class SmsProvider extends ContentProvider {
                         selectionArgs);
                 if (deleteCount > 0) {
                     System.out.println("=================SmsProvider deleteSuccess===============");
+                    getContext().getContentResolver().notifyChange(SmsProvider.URI_SMS,null);
                 }
                 break;
         }

@@ -1,10 +1,16 @@
 package com.jxust.asus.xmpp.activity;
 
 import android.app.Activity;
-import android.content.ContentValues;
+import android.content.Context;
+import android.database.ContentObserver;
+import android.database.Cursor;
 import android.os.Bundle;
+import android.os.Handler;
 import android.view.View;
+import android.view.ViewGroup;
+import android.widget.CursorAdapter;
 import android.widget.EditText;
+import android.widget.ImageView;
 import android.widget.ListView;
 import android.widget.TextView;
 
@@ -13,13 +19,11 @@ import com.jxust.asus.xmpp.dbhelper.SmsOpenHelper;
 import com.jxust.asus.xmpp.provider.SmsProvider;
 import com.jxust.asus.xmpp.service.IMService;
 import com.jxust.asus.xmpp.utils.ThreadUtils;
-import com.jxust.asus.xmpp.utils.ToastUtils;
 
-import org.jivesoftware.smack.Chat;
-import org.jivesoftware.smack.ChatManager;
-import org.jivesoftware.smack.MessageListener;
-import org.jivesoftware.smack.XMPPException;
 import org.jivesoftware.smack.packet.Message;
+
+import java.text.SimpleDateFormat;
+import java.util.Date;
 
 import butterknife.ButterKnife;
 import butterknife.InjectView;
@@ -37,7 +41,7 @@ public class ChatActivity extends Activity {
 
     private String mClickAccount;
     private String mClickNickname;
-
+    private CursorAdapter mAdapter;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -53,6 +57,7 @@ public class ChatActivity extends Activity {
     private void init() {
         mClickAccount = getIntent().getStringExtra(CLICKACCOUNT);
         mClickNickname = getIntent().getStringExtra(CLICKNICKNAME);
+        registerContentObserver();  // 注册监听
     }
 
     private void initView() {
@@ -61,7 +66,169 @@ public class ChatActivity extends Activity {
     }
 
     private void initData() {
+        setAdapterOrNotify();
 
+    }
+
+    private void setAdapterOrNotify() {
+        // 1.首先判断是否存在adapter
+        if (mAdapter != null) {
+            // 刷新操作
+            Cursor cursor = mAdapter.getCursor();
+            cursor.requery();
+            mListView.setSelection(cursor.getCount() - 1);    // 滚动到最后一行
+            return;
+        }
+
+        // 数据的查询在子线程完成
+        ThreadUtils.runInThread(new Runnable() {
+
+            @Override
+            public void run() {
+                final Cursor cursor = getContentResolver().query(SmsProvider.URI_SMS, null, null,
+                        null, "time asc");  // asc 升序，desc 降序
+                // 如果没有数据，直接返回
+                if (cursor.getCount() < 1) {
+                    return;
+                }
+
+
+                // Adapter的创建需要放到主线程中
+                ThreadUtils.runInUIThread(new Runnable() {
+                    @Override
+                    public void run() {
+                        // CursorAdapter : getView --> newView --> bindView
+
+                        // 如果convertView == null 的时候会调用 --> 返回根布局
+                        // 设置具体数据
+                        mAdapter = new CursorAdapter(ChatActivity.this, cursor) {
+                            public static final int RECEIVE = 0;
+                            public static final int SEND = 1;
+                            // 如果convertView == null 的时候会调用 --> 返回根布局
+                           /* @Override
+                            public View newView(Context context, Cursor cursor, ViewGroup parent) {
+                                TextView tv = new TextView(context);
+                                return tv;
+                            }
+
+                            @Override
+                            public void bindView(View view, Context context, Cursor cursor) {
+                                // 设置具体数据
+                                TextView tv = (TextView) view;
+                                String body = cursor.getString(cursor.getColumnIndex
+                                        (SmsOpenHelper.SMSTable.BODY));
+                                tv.setText(body);
+                            }*/
+
+                            /**
+                             * 获取消息类型
+                             * @param position
+                             * @return
+                             */
+                            @Override
+                            public int getItemViewType(int position) {
+                                cursor.moveToPosition(position);
+                                // 取出消息的创建者
+                                String fromAccount = cursor.getString(cursor.getColumnIndex
+                                        (SmsOpenHelper.SMSTable.FROM_ACCOUNT));
+                                if (!IMService.mCurAccount.equals(fromAccount)) { //
+                                    // 表示消息不是"我"创建的,接收操作
+                                    return RECEIVE;
+                                } else {    // 表示消息是"我"创建的，发送操作
+                                    return SEND;
+                                }
+
+                                // 接收   --> 如果当前的账号 不等于  消息的创建者
+                                // 发送
+
+//                                return super.getItemViewType(position); // 0 1
+                            }
+
+                            @Override
+                            public View getView(int position, View convertView, ViewGroup parent) {
+                                ViewHolder holder = null;
+                                if (getItemViewType(position) == RECEIVE) {     // 表示用户是在接收消息
+                                    if (convertView == null) {
+                                        convertView = View.inflate(ChatActivity.this, R.layout
+                                                .item_chat_receive, null);
+                                        holder = new ViewHolder();
+                                        convertView.setTag(holder);
+
+                                        // holder赋值
+                                        holder.body = (TextView) convertView.findViewById(R.id
+                                                .body);
+                                        holder.time = (TextView) convertView.findViewById(R.id
+                                                .time);
+                                        holder.head = (ImageView) convertView.findViewById(R.id
+                                                .head);
+                                    } else {
+                                        holder = (ViewHolder) convertView.getTag();
+                                    }
+                                } else {    // 表示用户是在发送消息
+                                    if (convertView == null) {
+                                        convertView = View.inflate(ChatActivity.this, R.layout
+                                                .item_chat_send, null);
+                                        holder = new ViewHolder();
+                                        convertView.setTag(holder);
+
+                                        // holder赋值
+                                        holder.body = (TextView) convertView.findViewById(R.id
+                                                .body);
+                                        holder.time = (TextView) convertView.findViewById(R.id
+                                                .time);
+                                        holder.head = (ImageView) convertView.findViewById(R.id
+                                                .head);
+                                    } else {
+                                        holder = (ViewHolder) convertView.getTag();
+                                    }
+                                }
+                                // 得到数据，展示数据
+                                cursor.moveToPosition(position);
+
+                                String time = cursor.getString(cursor.getColumnIndex
+                                        (SmsOpenHelper.SMSTable.TIME));
+
+                                String body = cursor.getString(cursor.getColumnIndex
+                                        (SmsOpenHelper.SMSTable.BODY));
+
+                                // 格式化时间
+                                String formatTime = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss")
+                                        .format(new Date(Long.parseLong(time)));
+
+                                holder.time.setText(formatTime);    // 将格式化后的时间显示出来
+                                holder.body.setText(body);      // 显示消息内容
+
+                                return super.getView(position, convertView, parent);
+                            }
+
+                            @Override
+                            public int getViewTypeCount() {
+                                return super.getViewTypeCount() + 1;    // 2
+                            }
+
+                            @Override
+                            public View newView(Context context, Cursor cursor, ViewGroup parent) {
+                                return null;
+                            }
+
+                            @Override
+                            public void bindView(View view, Context context, Cursor cursor) {
+
+                            }
+
+                            class ViewHolder {
+                                TextView body;  // 消息内容
+                                TextView time;  // 消息发送的时间
+                                ImageView head; // 头像
+
+                            }
+                        };
+                        mListView.setAdapter(mAdapter);
+                        mListView.setSelection(cursor.getCount() - 1);    // 滚动到最后一行
+                    }
+                });
+            }
+        });
     }
 
     private void initListener() {
@@ -70,93 +237,82 @@ public class ChatActivity extends Activity {
 
     public void send(View v) {
         final String body = mEtBody.getText().toString();
-        // 消息的发送放到子线程中
-        ThreadUtils.runInThread(new Runnable() {
-            @Override
-            public void run() {
-                try {
-//                  1.需要去获得消息的管理者
-                    ChatManager chatManager = IMService.conn.getChatManager();
-//                  2.创建聊天对象
-//                  chatManager.createChat(被发送对象的JID(唯一标识),消息的监听者);
-                    MyMessageListener messageListener = new MyMessageListener();
-                    Chat chat = chatManager.createChat(mClickAccount, messageListener);
-//                  3.发送消息
+        if (!body.equals("")) {     // 避免发送空消息
+            // 由于要去服务里面调用sendMessage方法，所以要使用子线程去执行操作
+            ThreadUtils.runInThread(new Runnable() {
+                @Override
+                public void run() {
+//          3.初始化了一个消息
                     Message msg = new Message();
                     msg.setFrom(IMService.mCurAccount); // 消息的来源，当前登录的用户
                     msg.setTo(mClickAccount);           // 消息发送的目的地
                     msg.setBody(body);                  // 输入框里面的内容
                     msg.setType(Message.Type.chat);     // 消息的类型，类型就是聊天
-//                    msg.setProperty("key", "value");     // 额外的属性-->其实就是额外的信息,这里我们不使用
+//          msg.setProperty("key", "value");     // 额外的属性-->其实就是额外的信息,这里我们不使用
 
-                    chat.sendMessage(msg);
+            //TODO  调用服务里面的sendMessage这个方法
 
-                    // 发送消息，保存消息
-                    // 我(from) --> other(to)    session_account===>other
-                    saveMessage(mClickAccount, msg);
-
-//                  4.清空输入框，在主线程中进行
+//          4.清空输入框，回到主线程中进行
                     ThreadUtils.runInUIThread(new Runnable() {
                         @Override
                         public void run() {
-                            mEtBody.setText(null);  // 将输入框清空
+                            mEtBody.setText("");  // 将输入框清空
                         }
                     });
-                } catch (XMPPException e) {
-                    e.printStackTrace();
                 }
-            }
-        });
-    }
-
-
-    /**
-     * 保存消息 --> ContentResoler --> contentProvider --> sqlite
-     *
-     * @param msg
-     */
-    private void saveMessage(String sessionAccount, Message msg) {
-        ContentValues values = new ContentValues();
-
-        // session_account 表示的是 会话id --> 最近你和哪些人聊天
-        // 我(from) --> other(to)    session_account===>other
-        // other(from) -->我(to)     session_account===>other
-        values.put(SmsOpenHelper.SMSTable.FROM_ACCOUNT, msg.getFrom());
-        values.put(SmsOpenHelper.SMSTable.TO_ACCOUNT, msg.getTo());
-        values.put(SmsOpenHelper.SMSTable.BODY, msg.getBody());
-        values.put(SmsOpenHelper.SMSTable.STATUS, "offline");
-        values.put(SmsOpenHelper.SMSTable.TYPE, msg.getType().name());
-        values.put(SmsOpenHelper.SMSTable.TIME, System.currentTimeMillis());
-        values.put(SmsOpenHelper.SMSTable.SESSION_ACCOUNT, sessionAccount);
-        getContentResolver().insert(SmsProvider.URI_SMS, values);
-    }
-
-
-    // 接收消息的监听
-    private class MyMessageListener implements MessageListener {
-
-
-        // 处理消息
-        @Override
-        public void processMessage(Chat chat, Message message) {
-            String body = message.getBody();
-            if (body != null) {
-                ToastUtils.showToastSafe(getApplicationContext(), body);
-                System.out.println("body:" + message.getBody());
-                System.out.println("type:" + message.getType());
-            /*
-            from:admin@127.0.0.1/Spark
-            to:mayu@127.0.0.1/Smack
-             */
-                System.out.println("from:" + message.getFrom());
-                System.out.println("to:" + message.getTo());
-
-                // 收到消息，保存消息
-                // other(from) -->我(to)     session_account===>other
-                String participant = chat.getParticipant();         // 发送消息者
-                System.out.println("发送者:" + participant);
-                saveMessage(participant, message);
-            }
+            });
         }
     }
+
+
+    @Override
+    protected void onDestroy() {
+        super.onDestroy();
+
+        unRegisterContentObserver();    // 反注册监听
+    }
+
+    /* ==============使用ContentObserver时刻监听记录的改变 begin=================*/
+    MyContentObserver mMyContentObserver = new MyContentObserver(new Handler());
+
+    /**
+     * 注册监听
+     */
+    public void registerContentObserver() {
+        getContentResolver().registerContentObserver(SmsProvider.URI_SMS, true, mMyContentObserver);
+    }
+
+    /**
+     * 反注册监听
+     */
+    public void unRegisterContentObserver() {
+        getContentResolver().unregisterContentObserver(mMyContentObserver);
+    }
+
+    class MyContentObserver extends ContentObserver {
+
+        /**
+         * Creates a content observer.
+         *
+         * @param handler The handler to run {@link #onChange} on, or null if none.
+         */
+        public MyContentObserver(Handler handler) {
+            super(handler);
+        }
+
+        /**
+         * 接收到数据记录的改变
+         * 如果数据库数据改变会在这个方法收到通知
+         *
+         * @param selfChange
+         */
+        @Override
+        public void onChange(boolean selfChange) {
+            super.onChange(selfChange);
+            // 设置adapter或者更新adapter
+            setAdapterOrNotify();
+        }
+    }
+    /* ==============使用ContentObserver时刻监听记录的改变 end=================*/
+
 }

@@ -7,14 +7,22 @@ import android.os.IBinder;
 import android.support.annotation.Nullable;
 
 import com.jxust.asus.xmpp.dbhelper.ContactOpenHelper;
+import com.jxust.asus.xmpp.dbhelper.SmsOpenHelper;
 import com.jxust.asus.xmpp.provider.ContactsProvider;
+import com.jxust.asus.xmpp.provider.SmsProvider;
 import com.jxust.asus.xmpp.utils.PinyinUtil;
 import com.jxust.asus.xmpp.utils.ThreadUtils;
+import com.jxust.asus.xmpp.utils.ToastUtils;
 
+import org.jivesoftware.smack.Chat;
+import org.jivesoftware.smack.ChatManager;
+import org.jivesoftware.smack.MessageListener;
 import org.jivesoftware.smack.Roster;
 import org.jivesoftware.smack.RosterEntry;
 import org.jivesoftware.smack.RosterListener;
 import org.jivesoftware.smack.XMPPConnection;
+import org.jivesoftware.smack.XMPPException;
+import org.jivesoftware.smack.packet.Message;
 import org.jivesoftware.smack.packet.Presence;
 
 import java.util.Collection;
@@ -31,6 +39,11 @@ public class IMService extends Service {
 
     private Roster mRoster;
     private MyRosterListener mRosterListener;
+
+    private ChatManager mChatManager;
+    private MyMessageListener mMessageListener;
+    private Chat mChat;
+
 
     @Nullable
     @Override
@@ -65,6 +78,12 @@ public class IMService extends Service {
                 }
                 System.out.println("------------------同步花名册 end--------------------");
                 /*------------------同步花名册 end--------------------*/
+                /*------------------创建消息管理者 注册监听 begin--------------------*/
+//                  1.需要去获得消息的管理者
+                if (mChatManager == null) {
+                    mChatManager = IMService.conn.getChatManager();
+                }
+                /*------------------创建消息管理者 注册监听 end--------------------*/
             }
         });
 
@@ -83,6 +102,11 @@ public class IMService extends Service {
         // 移除rosterListener
         if (mRosterListener != null && mRoster != null) {
             mRoster.removeRosterListener(mRosterListener);
+        }
+
+        // 移除messageListener
+        if (mChat != null && mMessageListener != null) {
+            mChat.removeMessageListener(mMessageListener);
         }
     }
 
@@ -125,6 +149,77 @@ public class IMService extends Service {
         }
     }
 
+    // 接收消息的监听
+    private class MyMessageListener implements MessageListener {
+        // 处理消息
+        @Override
+        public void processMessage(Chat chat, Message message) {
+            String body = message.getBody();
+            if (body != null) {
+                ToastUtils.showToastSafe(getApplicationContext(), body);
+                System.out.println("body:" + message.getBody());
+                System.out.println("type:" + message.getType());
+            /*
+            from:admin@127.0.0.1/Spark
+            to:mayu@127.0.0.1/Smack
+             */
+                System.out.println("from:" + message.getFrom());
+                System.out.println("to:" + message.getTo());
+
+                // 收到消息，保存消息
+                // other(from) -->我(to)     session_account===>other
+                String participant = chat.getParticipant();         // 发送消息者
+                System.out.println("发送者:" + participant);
+                saveMessage(participant, message);
+            }
+        }
+    }
+
+    /**
+     * 发送消息
+     */
+    private void sendMessage(final Message msg) {
+        // 放到子线程中执行相关操作,因为在调用处(ChatActivity)中已经是子线程了，所以在这不新建线程
+//      2.创建聊天对象
+        try {
+            if (mMessageListener == null) {
+                mMessageListener = new MyMessageListener();
+            }
+//                  chatManager.createChat(被发送对象的JID(唯一标识)也就是消息发给谁,消息的监听者);
+            if (mChat == null) {
+                mChat = mChatManager.createChat(msg.getTo(), mMessageListener);
+            }
+            mChat.sendMessage(msg);
+            // 发送消息，保存消息
+            // 我(from) --> other(to)    session_account===>other
+            saveMessage(msg.getTo(), msg);
+        } catch (XMPPException e) {
+            e.printStackTrace();
+        }
+
+    }
+
+    /**
+     * 保存消息 --> ContentResoler --> contentProvider --> sqlite
+     *
+     * @param msg
+     */
+    private void saveMessage(String sessionAccount, Message msg) {
+        ContentValues values = new ContentValues();
+
+        // session_account 表示的是 会话id --> 最近你和哪些人聊天
+        // 我(from) --> other(to)    session_account===>other
+        // other(from) -->我(to)     session_account===>other
+        values.put(SmsOpenHelper.SMSTable.FROM_ACCOUNT, msg.getFrom());
+        values.put(SmsOpenHelper.SMSTable.TO_ACCOUNT, msg.getTo());
+        values.put(SmsOpenHelper.SMSTable.BODY, msg.getBody());
+        values.put(SmsOpenHelper.SMSTable.STATUS, "offline");
+        values.put(SmsOpenHelper.SMSTable.TYPE, msg.getType().name());
+        values.put(SmsOpenHelper.SMSTable.TIME, System.currentTimeMillis());
+        values.put(SmsOpenHelper.SMSTable.SESSION_ACCOUNT, sessionAccount);
+        getContentResolver().insert(SmsProvider.URI_SMS, values);
+    }
+
     private void saveOrUpdateEntry(RosterEntry entry) {
         ContentValues values = new ContentValues();
         String account = entry.getUser();
@@ -151,5 +246,6 @@ public class IMService extends Service {
             getContentResolver().insert(ContactsProvider.URI_CONTACT, values);
         }
     }
+
 
 }

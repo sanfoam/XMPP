@@ -1,11 +1,15 @@
 package com.jxust.asus.xmpp.activity;
 
 import android.app.Activity;
+import android.content.ComponentName;
 import android.content.Context;
+import android.content.Intent;
+import android.content.ServiceConnection;
 import android.database.ContentObserver;
 import android.database.Cursor;
 import android.os.Bundle;
 import android.os.Handler;
+import android.os.IBinder;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.CursorAdapter;
@@ -42,6 +46,7 @@ public class ChatActivity extends Activity {
     private String mClickAccount;
     private String mClickNickname;
     private CursorAdapter mAdapter;
+    private IMService mImService;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -55,9 +60,20 @@ public class ChatActivity extends Activity {
     }
 
     private void init() {
+        registerContentObserver();  // 注册监听
+
+        // 通过混合模式来绑定服务(service)
+        Intent service = new Intent(ChatActivity.this,IMService.class);
+        /**
+         * 参数1表示的是要绑定的服务
+         * 参数2表示的是连接对象，implements ServiceConnection
+         * 参数3 BIND_AUTO_CREATE表示的意思如果服务还没创建的话就创建,如果服务还没绑定就绑定
+         */
+        bindService(service, mMyServiceConnection,BIND_AUTO_CREATE);
+
         mClickAccount = getIntent().getStringExtra(CLICKACCOUNT);
         mClickNickname = getIntent().getStringExtra(CLICKNICKNAME);
-        registerContentObserver();  // 注册监听
+
     }
 
     private void initView() {
@@ -250,7 +266,8 @@ public class ChatActivity extends Activity {
                     msg.setType(Message.Type.chat);     // 消息的类型，类型就是聊天
 //          msg.setProperty("key", "value");     // 额外的属性-->其实就是额外的信息,这里我们不使用
 
-            //TODO  调用服务里面的sendMessage这个方法
+            // 调用服务里面的sendMessage这个方法来发送消息
+                mImService.sendMessage(msg);
 
 //          4.清空输入框，回到主线程中进行
                     ThreadUtils.runInUIThread(new Runnable() {
@@ -268,8 +285,10 @@ public class ChatActivity extends Activity {
     @Override
     protected void onDestroy() {
         super.onDestroy();
-
         unRegisterContentObserver();    // 反注册监听
+        if(mMyServiceConnection != null) {
+            unbindService(mMyServiceConnection);    // 解绑服务,直接传入连接对象即可
+        }
     }
 
     /* ==============使用ContentObserver时刻监听记录的改变 begin=================*/
@@ -315,4 +334,26 @@ public class ChatActivity extends Activity {
     }
     /* ==============使用ContentObserver时刻监听记录的改变 end=================*/
 
+
+    // 创建连接对象
+    MyServiceConnection mMyServiceConnection = new MyServiceConnection();
+
+    // ServiceConnection的作用就是用于获取service和activity的连接信息
+    class MyServiceConnection implements ServiceConnection {
+
+        // service连接
+        @Override
+        public void onServiceConnected(ComponentName name, IBinder service) {
+            System.out.println("=========onServiceConnected=========");
+            IMService.MyBinder binder = (IMService.MyBinder) service;
+            // 通过Binder获得service实例
+            mImService = binder.getService();
+        }
+
+        // service断开连接
+        @Override
+        public void onServiceDisconnected(ComponentName name) {
+            System.out.println("=========onServiceDisconnected=========");
+        }
+    }
 }

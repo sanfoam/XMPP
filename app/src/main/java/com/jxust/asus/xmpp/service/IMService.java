@@ -3,6 +3,7 @@ package com.jxust.asus.xmpp.service;
 import android.app.Service;
 import android.content.ContentValues;
 import android.content.Intent;
+import android.os.Binder;
 import android.os.IBinder;
 import android.support.annotation.Nullable;
 
@@ -26,6 +27,8 @@ import org.jivesoftware.smack.packet.Message;
 import org.jivesoftware.smack.packet.Presence;
 
 import java.util.Collection;
+import java.util.HashMap;
+import java.util.Map;
 
 /**
  * Created by asus on 2016/8/5.
@@ -42,13 +45,23 @@ public class IMService extends Service {
 
     private ChatManager mChatManager;
     private MyMessageListener mMessageListener;
-    private Chat mChat;
+    private Chat mCurrentChat;
 
+    private Map<String,Chat> mChatMap = new HashMap<>();
 
     @Nullable
     @Override
     public IBinder onBind(Intent intent) {
-        return null;
+        return new MyBinder();
+    }
+
+    public class MyBinder extends Binder {
+        /**
+         * 返回service的实例
+         */
+        public IMService getService(){
+            return IMService.this;
+        }
     }
 
     @Override
@@ -105,8 +118,8 @@ public class IMService extends Service {
         }
 
         // 移除messageListener
-        if (mChat != null && mMessageListener != null) {
-            mChat.removeMessageListener(mMessageListener);
+        if (mCurrentChat != null && mMessageListener != null) {
+            mCurrentChat.removeMessageListener(mMessageListener);
         }
     }
 
@@ -176,9 +189,9 @@ public class IMService extends Service {
     }
 
     /**
-     * 发送消息
+     * 发送消息,给Activity调用
      */
-    private void sendMessage(final Message msg) {
+    public void sendMessage(final Message msg) {
         // 放到子线程中执行相关操作,因为在调用处(ChatActivity)中已经是子线程了，所以在这不新建线程
 //      2.创建聊天对象
         try {
@@ -186,13 +199,22 @@ public class IMService extends Service {
                 mMessageListener = new MyMessageListener();
             }
 //                  chatManager.createChat(被发送对象的JID(唯一标识)也就是消息发给谁,消息的监听者);
-            if (mChat == null) {
-                mChat = mChatManager.createChat(msg.getTo(), mMessageListener);
+
+            // 判断在Chat对象是否在Map中已经创建
+
+            String toAccount = msg.getTo();
+
+            if(mChatMap.containsKey(toAccount)){    // 表示ChatMap中存在被接受对象
+                mCurrentChat = mChatMap.get(toAccount);
+            } else {        // 表示ChatMap中不存在此对象
+                mCurrentChat = mChatManager.createChat(toAccount, mMessageListener);
+                mChatMap.put(toAccount,mCurrentChat);   // 将当前聊天用户保存起来
             }
-            mChat.sendMessage(msg);
+
             // 发送消息，保存消息
+            mCurrentChat.sendMessage(msg);
             // 我(from) --> other(to)    session_account===>other
-            saveMessage(msg.getTo(), msg);
+            saveMessage(toAccount, msg);
         } catch (XMPPException e) {
             e.printStackTrace();
         }

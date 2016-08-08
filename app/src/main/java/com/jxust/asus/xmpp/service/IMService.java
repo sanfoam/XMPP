@@ -7,6 +7,7 @@ import android.os.Binder;
 import android.os.IBinder;
 import android.support.annotation.Nullable;
 
+import com.jxust.asus.xmpp.activity.LoginActivity;
 import com.jxust.asus.xmpp.dbhelper.ContactOpenHelper;
 import com.jxust.asus.xmpp.dbhelper.SmsOpenHelper;
 import com.jxust.asus.xmpp.provider.ContactsProvider;
@@ -17,6 +18,7 @@ import com.jxust.asus.xmpp.utils.ToastUtils;
 
 import org.jivesoftware.smack.Chat;
 import org.jivesoftware.smack.ChatManager;
+import org.jivesoftware.smack.ChatManagerListener;
 import org.jivesoftware.smack.MessageListener;
 import org.jivesoftware.smack.Roster;
 import org.jivesoftware.smack.RosterEntry;
@@ -44,10 +46,9 @@ public class IMService extends Service {
     private MyRosterListener mRosterListener;
 
     private ChatManager mChatManager;
-    private MyMessageListener mMessageListener;
     private Chat mCurrentChat;
 
-    private Map<String,Chat> mChatMap = new HashMap<>();
+    private Map<String, Chat> mChatMap = new HashMap<>();
 
     @Nullable
     @Override
@@ -59,7 +60,7 @@ public class IMService extends Service {
         /**
          * 返回service的实例
          */
-        public IMService getService(){
+        public IMService getService() {
             return IMService.this;
         }
     }
@@ -96,6 +97,7 @@ public class IMService extends Service {
                 if (mChatManager == null) {
                     mChatManager = IMService.conn.getChatManager();
                 }
+                mChatManager.addChatListener(mMyChatManagerListener);
                 /*------------------创建消息管理者 注册监听 end--------------------*/
             }
         });
@@ -118,8 +120,8 @@ public class IMService extends Service {
         }
 
         // 移除messageListener
-        if (mCurrentChat != null && mMessageListener != null) {
-            mCurrentChat.removeMessageListener(mMessageListener);
+        if (mCurrentChat != null && mMyMessageListener != null) {
+            mCurrentChat.removeMessageListener(mMyMessageListener);
         }
     }
 
@@ -162,6 +164,10 @@ public class IMService extends Service {
         }
     }
 
+
+    // 这个的作用就是在一创建这个服务的时候就将消息的监听给创建了
+    MyMessageListener mMyMessageListener = new MyMessageListener();
+
     // 接收消息的监听
     private class MyMessageListener implements MessageListener {
         // 处理消息
@@ -188,6 +194,46 @@ public class IMService extends Service {
         }
     }
 
+
+    // 这个监听在会话一开始就开始监听，主要的作用是处理被动的消息
+    MyChatManagerListener mMyChatManagerListener = new MyChatManagerListener();
+    class MyChatManagerListener implements ChatManagerListener {
+
+
+        /**
+         * @param chat
+         * @param createdLocally 用于判断是谁创建了Chat
+         * 如果是true则表示是自己创建了一个Chat
+         * 如果是false则表示是别人创建了一个Chat
+         */
+        @Override
+        public void chatCreated(Chat chat, boolean createdLocally) {
+            System.out.println("------------------chatCreated--------------------");
+
+            // 判断Chat是否是存在于Map
+            String participant = chat.getParticipant();
+
+            // 因为别人创建和我创建，参与者(和我聊天的人)对应的JID不同，所以需要统一处理
+            participant = participant.substring(0, participant.indexOf("@")) + "@" +
+                    LoginActivity.SERVICENAME;
+
+            if (!mChatMap.containsKey(participant)) {
+                // 保存Chat
+                mChatMap.put(participant, chat);
+                chat.addMessageListener(mMyMessageListener);
+            }
+            System.out.println("participant:" + participant);
+
+            if (createdLocally == true) {
+                System.out.println("------------------我创建了一个Chat--------------------");
+//          participant:admin@127.0.0.1           mayu@127.0.0.1  ------>   admin@127.0.0.1
+            } else {
+                System.out.println("------------------别人创建一个Chat--------------------");
+//          participant:admin@127.0.0.1/Spark     mayu@127.0.0.1  ------>   admin@127.0.0.1
+            }
+        }
+    }
+
     /**
      * 发送消息,给Activity调用
      */
@@ -195,20 +241,17 @@ public class IMService extends Service {
         // 放到子线程中执行相关操作,因为在调用处(ChatActivity)中已经是子线程了，所以在这不新建线程
 //      2.创建聊天对象
         try {
-            if (mMessageListener == null) {
-                mMessageListener = new MyMessageListener();
-            }
+
 //                  chatManager.createChat(被发送对象的JID(唯一标识)也就是消息发给谁,消息的监听者);
 
             // 判断在Chat对象是否在Map中已经创建
-
             String toAccount = msg.getTo();
 
-            if(mChatMap.containsKey(toAccount)){    // 表示ChatMap中存在被接受对象
+            if (mChatMap.containsKey(toAccount)) {    // 表示ChatMap中存在被接受对象
                 mCurrentChat = mChatMap.get(toAccount);
             } else {        // 表示ChatMap中不存在此对象
-                mCurrentChat = mChatManager.createChat(toAccount, mMessageListener);
-                mChatMap.put(toAccount,mCurrentChat);   // 将当前聊天用户保存起来
+                mCurrentChat = mChatManager.createChat(toAccount, mMyMessageListener);
+                mChatMap.put(toAccount, mCurrentChat);   // 将当前聊天用户保存起来
             }
 
             // 发送消息，保存消息

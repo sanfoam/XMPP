@@ -197,14 +197,15 @@ public class IMService extends Service {
 
     // 这个监听在会话一开始就开始监听，主要的作用是处理被动的消息
     MyChatManagerListener mMyChatManagerListener = new MyChatManagerListener();
+
     class MyChatManagerListener implements ChatManagerListener {
 
 
         /**
          * @param chat
          * @param createdLocally 用于判断是谁创建了Chat
-         * 如果是true则表示是自己创建了一个Chat
-         * 如果是false则表示是别人创建了一个Chat
+         *                       如果是true则表示是自己创建了一个Chat
+         *                       如果是false则表示是别人创建了一个Chat
          */
         @Override
         public void chatCreated(Chat chat, boolean createdLocally) {
@@ -321,6 +322,7 @@ public class IMService extends Service {
     /**
      * 这个是用于去掉后缀的
      * admin@127.0.0.1/Spark   ——>  admin@127.0.0.1
+     *
      * @param accout
      * @return
      */

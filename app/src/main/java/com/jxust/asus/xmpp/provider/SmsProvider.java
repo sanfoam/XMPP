@@ -5,6 +5,7 @@ import android.content.ContentUris;
 import android.content.ContentValues;
 import android.content.UriMatcher;
 import android.database.Cursor;
+import android.database.sqlite.SQLiteDatabase;
 import android.net.Uri;
 import android.support.annotation.Nullable;
 
@@ -19,17 +20,19 @@ import com.jxust.asus.xmpp.dbhelper.SmsOpenHelper;
 public class SmsProvider extends ContentProvider {
 
     public static final String AUTHORITIES = SmsProvider.class.getCanonicalName();     // 得到类的完整路径
-
     static UriMatcher mUriMatcher;
 
+    public static Uri URI_SESSION = Uri.parse("content://" + AUTHORITIES + "/session");
     public static Uri URI_SMS = Uri.parse("content://" + AUTHORITIES + "/sms");
 
     public static final int SMS = 1;
+    public static final int SESSION = 2;
 
     static {
         mUriMatcher = new UriMatcher(UriMatcher.NO_MATCH);
         // 添加匹配规则
         mUriMatcher.addURI(AUTHORITIES, "/sms", SMS);
+        mUriMatcher.addURI(AUTHORITIES, "/session", SESSION);
         // content://com.jxust.asus.xmpp.provider.SmsProvider/sms-->SMS
     }
 
@@ -64,7 +67,7 @@ public class SmsProvider extends ContentProvider {
                     uri = ContentUris.withAppendedId(uri, id);
                     // 发送数据改变的信号,第二个参数表示是否需要指定一个特殊的observer
                     // 如果是null表示不指定observer，所有的都要接收
-                    getContext().getContentResolver().notifyChange(SmsProvider.URI_SMS,null);
+                    getContext().getContentResolver().notifyChange(SmsProvider.URI_SMS, null);
                 }
                 break;
         }
@@ -79,9 +82,15 @@ public class SmsProvider extends ContentProvider {
         switch (mUriMatcher.match(uri)) {
             case SMS:
                 cursor = mHelper.getWritableDatabase().query(SmsOpenHelper.T_SMS,
-                        projection, selection,
-                        selectionArgs, null, null, sortOrder);
+                        projection, selection, selectionArgs, null, null, sortOrder);
                 System.out.println("=================SmsProvider querySuccess===============");
+                break;
+            case SESSION:
+                SQLiteDatabase db = mHelper.getWritableDatabase();
+                selection = "SELECT * FROM (SELECT * FROM t_sms WHERE from_account=? OR " +
+                        "to_account=? ORDER BY TIME ASC) GROUP BY session_account";
+                cursor = db.rawQuery(selection, selectionArgs);
+
                 break;
         }
         return cursor;
@@ -96,7 +105,7 @@ public class SmsProvider extends ContentProvider {
                         selection, selectionArgs);
                 if (updateCount > 0) {//说明更新成功
                     System.out.println("=================SmsProvider updateSuccess===============");
-                    getContext().getContentResolver().notifyChange(SmsProvider.URI_SMS,null);
+                    getContext().getContentResolver().notifyChange(SmsProvider.URI_SMS, null);
                 }
                 break;
         }
@@ -113,7 +122,7 @@ public class SmsProvider extends ContentProvider {
                         selectionArgs);
                 if (deleteCount > 0) {
                     System.out.println("=================SmsProvider deleteSuccess===============");
-                    getContext().getContentResolver().notifyChange(SmsProvider.URI_SMS,null);
+                    getContext().getContentResolver().notifyChange(SmsProvider.URI_SMS, null);
                 }
                 break;
         }

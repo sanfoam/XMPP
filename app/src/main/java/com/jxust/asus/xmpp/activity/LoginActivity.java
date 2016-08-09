@@ -11,6 +11,7 @@ import android.widget.TextView;
 
 import com.jxust.asus.xmpp.R;
 import com.jxust.asus.xmpp.service.IMService;
+import com.jxust.asus.xmpp.service.PushService;
 import com.jxust.asus.xmpp.utils.ThreadUtils;
 import com.jxust.asus.xmpp.utils.ToastUtils;
 
@@ -105,6 +106,9 @@ public class LoginActivity extends Activity {
                             // 启动IMService
                             Intent service = new Intent(LoginActivity.this, IMService.class);
                             startService(service);
+                            // 启动PushService
+                            Intent pushService = new Intent(LoginActivity.this, PushService.class);
+                            startService(pushService);
 
                         } catch (XMPPException e) {
                             e.printStackTrace();

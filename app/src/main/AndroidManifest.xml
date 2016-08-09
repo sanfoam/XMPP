@@ -24,6 +24,7 @@
             android:authorities="com.jxust.asus.xmpp.provider.ContactsProvider"/>
 
         <service android:name=".service.IMService"/>
+        <service android:name=".service.PushService"/>
         <activity android:name=".activity.ChatActivity"/>
         <provider
             android:name=".provider.SmsProvider"
